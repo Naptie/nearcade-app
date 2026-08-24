@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Nearcade",
+    "slug": "nearcade-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "nearcade",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "backgroundColor": "#0E1016",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.nearcade.mobile"
+    },
+    "android": {
+      "package": "app.nearcade.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0E1016"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Nearcade uses your location to find arcades nearby."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Nearcade uses the camera to scan a login QR code from the nearcade website."
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "baseUrl": "/nearcade-app"
+    }
+  }
+}
