@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Avatar,
@@ -38,7 +38,9 @@ export default function ClubScreen() {
   const arcades = arcadesQuery.data ?? [];
 
   return (
-    <Screen>
+    <>
+      <Stack.Screen options={{ headerTitle: club.name }} />
+      <Screen>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <Card className="gap-2.5 p-5">
@@ -96,5 +98,6 @@ export default function ClubScreen() {
         </View>
       </ScrollView>
     </Screen>
+    </>
   );
 }

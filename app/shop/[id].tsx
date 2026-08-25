@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert as RNAlert, ScrollView, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -75,7 +75,9 @@ export default function ShopDetailScreen() {
   const changelogEntries = changelogQuery.data?.pages.flatMap((p) => p.entries) ?? [];
 
   return (
-    <Screen>
+    <>
+      <Stack.Screen options={{ headerTitle: shop.name }} />
+      <Screen>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="gap-3">
@@ -231,6 +233,7 @@ export default function ShopDetailScreen() {
         ) : null}
       </ScrollView>
     </Screen>
+    </>
   );
 }
 

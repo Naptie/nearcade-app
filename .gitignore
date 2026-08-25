@@ -8,6 +8,9 @@ web-build/
 expo-env.d.ts
 *.orig.*
 
+# ui verification output
+artifacts/
+
 # native
 ios/
 android/

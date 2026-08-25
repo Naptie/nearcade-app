@@ -22,10 +22,11 @@ const CAMPUS_RADII = [2, 5, 10, 30];
 const REGION_LEVELS = ['country', 'province', 'city', 'county'];
 const TABBAR_CLEARANCE = 84;
 
+/* Gold/silver/bronze rank tints readable on both emerald and forest. */
 const RANK_STYLES = [
-  'bg-[#F5C542]/20 text-[#D9A514] dark:text-[#F5C542]',
+  'bg-[#F5C542]/20 text-[#B8920F]',
   'bg-base-content/15 text-base-content/70',
-  'bg-[#CD7F32]/20 text-[#B06A25] dark:text-[#E09A5F]',
+  'bg-[#CD7F32]/20 text-[#A9641F]',
 ];
 
 export default function RankingsScreen() {

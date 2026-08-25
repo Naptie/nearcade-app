@@ -1,57 +1,103 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
 
-/* daisyUI "emerald" (light) — nearcade's default site theme */
-:root {
-  --color-base-100: 255 255 255;
-  --color-base-200: 232 232 232;
-  --color-base-300: 209 209 209;
-  --color-base-content: 51 60 77;
+@import "nativewind/theme";
 
-  --color-primary: 102 204 138;
-  --color-primary-content: 20 56 35;
-  --color-secondary: 55 124 251;
-  --color-secondary-content: 247 250 255;
-  --color-accent: 246 128 103;
-  --color-accent-content: 61 18 9;
-  --color-neutral: 51 60 77;
-  --color-neutral-content: 248 248 248;
+/*
+ * daisyUI "emerald" (light) — nearcade's default site palette.
+ * Values are the oklch site tokens converted to sRGB.
+ * Utilities compile to var() references, so overriding :root below
+ * (or via VariableContextProvider at runtime) re-themes the whole app.
+ */
+@theme {
+  --color-base-100: #ffffff;
+  --color-base-200: #e8e8e8;
+  --color-base-300: #d1d1d1;
+  --color-base-content: #333c4d;
 
-  --color-info: 55 124 251;
-  --color-info-content: 245 249 255;
-  --color-success: 34 197 94;
-  --color-success-content: 5 32 15;
-  --color-warning: 245 158 11;
-  --color-warning-content: 37 22 2;
-  --color-error: 239 68 68;
-  --color-error-content: 47 7 7;
+  --color-primary: #66cc8a;
+  --color-primary-content: #143823;
+  --color-secondary: #377cfb;
+  --color-secondary-content: #f7faff;
+  --color-accent: #f68067;
+  --color-accent-content: #3d1209;
+  --color-neutral: #333c4d;
+  --color-neutral-content: #f8f8f8;
+
+  --color-info: #377cfb;
+  --color-info-content: #f5f9ff;
+  --color-success: #22c55e;
+  --color-success-content: #05200f;
+  --color-warning: #f59e0b;
+  --color-warning-content: #251602;
+  --color-error: #ef4444;
+  --color-error-content: #2f0707;
+
+  /* Live-attendance density colors, mirroring the website's
+     green/yellow/orange/red-500 card borders. */
+  --color-density-1: #22c55e;
+  --color-density-2: #eab308;
+  --color-density-3: #f97316;
+  --color-density-4: #ef4444;
+
+  --font-sans: Sora_400Regular;
 }
 
-/* daisyUI "forest" (dark) — nearcade's dark site theme */
+/*
+ * daisyUI "forest" (dark) — nearcade's dark site palette.
+ * Unlayered rules win over the @theme layer; `dark:` variants and these
+ * variables both follow prefers-color-scheme (Appearance.setColorScheme
+ * overrides it on native).
+ */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-base-100: 27 23 23;
-    --color-base-200: 22 18 18;
-    --color-base-300: 17 13 13;
-    --color-base-content: 202 201 201;
+    --color-base-100: #1b1717;
+    --color-base-200: #161212;
+    --color-base-300: #110d0d;
+    --color-base-content: #cac9c9;
 
-    --color-primary: 31 184 84;
-    --color-primary-content: 4 26 12;
-    --color-secondary: 30 184 142;
-    --color-secondary-content: 3 28 21;
-    --color-accent: 31 184 171;
-    --color-accent-content: 3 27 25;
-    --color-neutral: 25 54 45;
-    --color-neutral-content: 214 222 218;
+    --color-primary: #1fb854;
+    --color-primary-content: #041a0c;
+    --color-secondary: #1eb88e;
+    --color-secondary-content: #031c15;
+    --color-accent: #1fb8ab;
+    --color-accent-content: #031b19;
+    --color-neutral: #19362d;
+    --color-neutral-content: #d6deda;
 
-    --color-info: 56 189 248;
-    --color-info-content: 4 22 33;
-    --color-success: 52 211 153;
-    --color-success-content: 4 26 17;
-    --color-warning: 251 191 36;
-    --color-warning-content: 30 21 3;
-    --color-error: 248 113 113;
-    --color-error-content: 34 6 6;
+    --color-info: #38bdf8;
+    --color-info-content: #041621;
+    --color-success: #34d399;
+    --color-success-content: #041a11;
+    --color-warning: #fbbf24;
+    --color-warning-content: #1e1503;
+    --color-error: #f87171;
+    --color-error-content: #220606;
   }
+}
+
+/*
+ * RN resolves weight through per-weight font families (Sora ships as
+ * static TTFs). These extend Tailwind's font-weight utilities so a class
+ * like `font-bold` sets both the family (latin) and the weight trait
+ * (CJK system-font fallback).
+ */
+@utility font-light {
+  font-family: Sora_300Light;
+}
+@utility font-normal {
+  font-family: Sora_400Regular;
+}
+@utility font-medium {
+  font-family: Sora_500Medium;
+}
+@utility font-semibold {
+  font-family: Sora_600SemiBold;
+}
+@utility font-bold {
+  font-family: Sora_700Bold;
+}
+@utility font-extrabold {
+  font-family: Sora_800ExtraBold;
 }

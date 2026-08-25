@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Avatar,
   Badge,
@@ -39,7 +39,9 @@ export default function UniversityScreen() {
   const firstCampus = university.campuses?.[0];
 
   return (
-    <Screen>
+    <>
+      <Stack.Screen options={{ headerTitle: university.name }} />
+      <Screen>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         {/* Header — mirrors the site's profile section block */}
         <Card className="gap-2 p-5">
@@ -128,5 +130,6 @@ export default function UniversityScreen() {
         )}
       </ScrollView>
     </Screen>
+    </>
   );
 }

@@ -19,6 +19,14 @@ import { useClubs, useUniversitySearch } from '@/hooks/api';
 
 const TABBAR_CLEARANCE = 84;
 
+/**
+ * /api/universities is a search-only endpoint (empty q returns []), while the
+ * website's /universities page lists the full directory. Seed the empty query
+ * with a broad term so the tab isn't blank on first open — matching e.g.
+ * 北京大学 / 清华大学 / 中国人民大学 as a sensible default directory.
+ */
+const DEFAULT_UNIVERSITY_QUERY = '大学';
+
 export default function CommunityScreen() {
   const { t } = useI18n();
   const router = useRouter();
@@ -27,7 +35,7 @@ export default function CommunityScreen() {
   const [universityQuery, setUniversityQuery] = useState('');
   const [clubQuery, setClubQuery] = useState('');
 
-  const universities = useUniversitySearch(universityQuery);
+  const universities = useUniversitySearch(universityQuery.trim() || DEFAULT_UNIVERSITY_QUERY);
   const clubs = useClubs(clubQuery, '');
 
   return (

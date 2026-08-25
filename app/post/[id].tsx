@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import {
@@ -64,7 +64,9 @@ export default function PostScreen() {
   };
 
   return (
-    <Screen>
+    <>
+      <Stack.Screen options={{ headerTitle: post.title }} />
+      <Screen>
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -200,5 +202,6 @@ export default function PostScreen() {
         </View>
       </KeyboardAvoidingView>
     </Screen>
+    </>
   );
 }
