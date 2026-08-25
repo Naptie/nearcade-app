@@ -1,38 +1,45 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, Card, Segmented, LoadingView, ErrorState, EmptyState, ListFooter } from '@/components/ui';
-import { useTheme } from '@/theme';
+import {
+  Avatar,
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  ListFooter,
+  LoadingView,
+  Screen,
+  SegTabs,
+} from '@/components/ui';
 import { useI18n } from '@/i18n';
+import type { ClubListItem, University } from '@/api/types';
 import { useClubs, useUniversitySearch } from '@/hooks/api';
 
+const TABBAR_CLEARANCE = 84;
+
 export default function CommunityScreen() {
-  const { colors } = useTheme();
   const { t } = useI18n();
   const router = useRouter();
 
   const [scope, setScope] = useState<'universities' | 'clubs'>('universities');
   const [universityQuery, setUniversityQuery] = useState('');
   const [clubQuery, setClubQuery] = useState('');
-  const [clubUniversityFilter, setClubUniversityFilter] = useState('');
 
   const universities = useUniversitySearch(universityQuery);
-  const clubs = useClubs(clubUniversityFilter ? '' : clubQuery, clubUniversityFilter);
-
-  // University filter options come embedded in the clubs list response.
-  const universityOptions = useMemo(() => clubs.data?.pages[0]?.universities ?? [], [clubs.data]);
+  const clubs = useClubs(clubQuery, '');
 
   return (
-    <Screen>
+    <Screen bottomInset={TABBAR_CLEARANCE}>
       <FlatList
         data={
-          (scope === 'universities' ? (universities.data ?? []) : (clubs.data?.pages.flatMap((p) => p.clubs) ?? [])) as (
-            import('@/api/types').University | import('@/api/types').ClubListItem
-          )[]
+          (scope === 'universities'
+            ? (universities.data ?? [])
+            : (clubs.data?.pages.flatMap((p) => p.clubs) ?? [])) as (University | ClubListItem)[]
         }
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         onEndReached={
           scope === 'clubs'
             ? () => {
@@ -43,95 +50,75 @@ export default function CommunityScreen() {
         onEndReachedThreshold={0.4}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
-          <View style={{ gap: 12, marginBottom: 8 }}>
-            <Text style={{ fontSize: 24, fontWeight: '900' }}>{t('tabs.community')}</Text>
-            <Segmented
+          <View className="mb-2 gap-3">
+            <Text className="text-2xl font-extrabold tracking-tight text-base-content">{t('tabs.community')}</Text>
+
+            <SegTabs
               value={scope}
-              onChange={(v) => setScope(v as 'universities' | 'clubs')}
+              onChange={(v) => setScope(v)}
               options={[
                 { value: 'universities', label: t('community.universities') },
                 { value: 'clubs', label: t('community.clubs') },
               ]}
             />
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: colors.surface,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: colors.border,
-                borderRadius: 12,
-                paddingHorizontal: 12,
-                paddingVertical: 9,
-              }}
-            >
-              <Ionicons name="search" size={16} color={colors.textMuted} />
+
+            {/* Pill search bar */}
+            <View className="h-11 flex-row items-center gap-2.5 rounded-full border border-base-300/60 bg-base-200/70 px-4">
+              <Ionicons name="search" size={16} className="text-base-content/45" />
               <TextInput
-                style={{ flex: 1, color: colors.text, fontSize: 15 }}
-                placeholder={scope === 'universities' ? t('community.searchUniversities') : t('community.searchClubs')}
-                placeholderTextColor={colors.textMuted}
                 value={scope === 'universities' ? universityQuery : clubQuery}
                 onChangeText={(text) =>
                   scope === 'universities' ? setUniversityQuery(text) : setClubQuery(text)
                 }
+                placeholder={scope === 'universities' ? t('community.searchUniversities') : t('community.searchClubs')}
+                placeholderTextColor="#8A8A8A"
                 autoCorrect={false}
+                className="flex-1 py-0 text-[14.5px] text-base-content"
               />
             </View>
           </View>
         }
         renderItem={({ item }) => {
           if ('universityId' in item) {
-            const club = item as import('@/api/types').ClubListItem;
+            const club = item as ClubListItem;
             return (
-              <Card
-                style={{ marginBottom: 10 }}
-                onPress={() => router.push(`/club/${club.id}`)}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 12,
-                      backgroundColor: `${colors.primary}22`,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Ionicons name="people-circle" size={26} color={colors.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '800', fontSize: 15 }} numberOfLines={1}>
+              <Card className="mb-2.5" onPress={() => router.push(`/club/${club.id}`)}>
+                <View className="flex-row items-center gap-3">
+                  <Avatar name={club.name} image={club.avatarUrl ?? null} size={42} />
+                  <View className="flex-1">
+                    <Text className="text-[14.5px] font-bold tracking-tight text-base-content" numberOfLines={1}>
                       {club.name}
                     </Text>
-                    <Text style={{ fontSize: 12.5, color: colors.textMuted }} numberOfLines={1}>
+                    <Text className="mt-0.5 text-[12px] font-medium text-base-content/50" numberOfLines={1}>
                       {club.universityName ?? club.universityId}
                     </Text>
                   </View>
-                  {(club.membersCount ?? 0) > 0 ? (
-                    <Text style={{ fontSize: 12, color: colors.accent, fontWeight: '700' }}>{club.membersCount}</Text>
-                  ) : null}
+                  {(club.membersCount ?? 0) > 0 ? <Badge color="accent">{`${club.membersCount} 👥`}</Badge> : null}
                 </View>
               </Card>
             );
           }
-          const university = item as import('@/api/types').University;
+          const university = item as University;
           return (
-            <Card style={{ marginBottom: 10 }} onPress={() => router.push(`/university/${university.id}`)}>
-              <View style={{ gap: 6 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <Text style={{ fontWeight: '800', fontSize: 15.5, flexShrink: 1 }} numberOfLines={1}>
-                    {university.name}
+            <Card className="mb-2.5" onPress={() => router.push(`/university/${university.id}`)}>
+              <View className="flex-row items-center gap-3">
+                <Avatar name={university.name} image={university.avatarUrl ?? null} size={42} />
+                <View className="flex-1 gap-1">
+                  <View className="flex-row items-center gap-1.5">
+                    <Text className="shrink text-[15px] font-bold tracking-tight text-base-content" numberOfLines={1}>
+                      {university.name}
+                    </Text>
+                    {university.is985 ? <Badge color="primary">985</Badge> : null}
+                    {university.is211 ? <Badge color="secondary">211</Badge> : null}
+                    {university.isDoubleFirstClass ? <Badge color="accent">{t('university.dfc')}</Badge> : null}
+                  </View>
+                  <Text className="text-[12px] font-medium text-base-content/50" numberOfLines={1}>
+                    {[university.campuses?.[0]?.province, university.campuses?.[0]?.city]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    {university.type ? ` · ${university.type}` : ''}
                   </Text>
-                  {university.is985 ? <TagChip text="985" /> : null}
-                  {university.is211 ? <TagChip text="211" /> : null}
-                  {university.isDoubleFirstClass ? <TagChip text="双一流" /> : null}
                 </View>
-                <Text style={{ fontSize: 12.5, color: colors.textMuted }} numberOfLines={1}>
-                  {[university.campuses?.[0]?.province, university.campuses?.[0]?.city].filter(Boolean).join(' · ')}
-                  {university.type ? ` · ${university.type}` : ''}
-                </Text>
               </View>
             </Card>
           );
@@ -142,19 +129,10 @@ export default function CommunityScreen() {
           ) : universities.isError || clubs.isError ? (
             <ErrorState error={universities.error ?? clubs.error} onRetry={() => void universities.refetch()} />
           ) : (
-            <EmptyState message={t('common.empty')} icon={<Ionicons name="school-outline" size={40} color={colors.textMuted} />} />
+            <EmptyState message={t('common.empty')} icon="school-outline" />
           )
         }
       />
     </Screen>
-  );
-}
-
-function TagChip({ text }: { text: string }) {
-  const { colors } = useTheme();
-  return (
-    <View style={{ backgroundColor: `${colors.primary}20`, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1 }}>
-      <Text style={{ fontSize: 10, fontWeight: '800', color: colors.primary }}>{text}</Text>
-    </View>
   );
 }

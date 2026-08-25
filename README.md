@@ -1,4 +1,4 @@
-# Nearcade App
+# nearcade App
 
 The official cross-platform client for [nearcade](https://nearcade.cn) — discover arcade
 gaming venues, follow campus & region rankings, and browse university rhythm-game
@@ -17,16 +17,19 @@ communities — built as **one React Native codebase** running natively on **And
 - One-tap GPS location via `expo-location`; manual lat/lng picker fallback (great on desktop web)
 - Search radius chips: 1 / 2 / 5 / 10 / 20 / 30 km (server clamps to 0–30)
 - Multi-select game-title filter (maimai DX, CHUNITHM, SDVX, IIDX, Taiko, … 27+ titles)
-- Results sorted by walking distance with per-shop "playing now" attendance totals,
-  open/closed badges (computed from shop opening hours + timezone), and game chips
-- Built-in **dependency-free OpenStreetMap slippy map** with pan/zoom and tappable markers
+- Results sorted by walking distance with density-coded cards ("playing now" totals,
+  open/closed badges computed from shop opening hours + timezone, game chips)
+- In-app map: **Apple Maps (MapKit)** on iOS; a featherweight OSM tile map on
+  Android/web — no bundled map SDK, so the APK stays tiny and works on
+  GMS-less Chinese OEM ROMs
 
 ### Shop details (`shop/[id]`)
 - Games tab: machines grouped by title with quantity, cost, version and live attendance counts
 - Comments tab: markdown comments with author avatars and vote counts
 - Changelog tab: paginated community edit history (created / game_modified / photo_uploaded …)
 - Opening hours (whole-week or per-weekday formats), claimed/locked badges
-- Directions hand-off to Apple Maps / Google Maps deep links
+- Directions hand-off to the system map app: `maps://` (Apple Maps) on iOS;
+  `geo:` → AMap → Google fallback chain on Android (works with 高德/百度/腾讯地图)
 
 ### Rankings (`Rankings` tab)
 - Campus leaderboard: sort by shops / machines / any game title, radius filter (2/5/10/30 km),
@@ -57,7 +60,7 @@ communities — built as **one React Native codebase** running natively on **And
 ### Preferences (`Settings`)
 - Server URL override (self-hosted instances) with connectivity test
 - Language: English / 中文 / 日本語 (+ follow system)
-- Theme: system / light / dark (arcade-neon dark palette by default)
+- Theme: system / light / dark — the website's emerald (light) & forest (dark) palettes
 
 ---
 
@@ -70,9 +73,9 @@ communities — built as **one React Native codebase** running natively on **And
 | Data fetching | TanStack Query v5 — typed query keys, infinite queries, optimistic invalidation |
 | State | Zustand v5 + persisted stores (settings, session cookie jar) |
 | Secure storage | expo-secure-store (Keychain/Keystore) on native, localStorage on web |
-| Styling | Hand-rolled design tokens (`src/theme`) with light/dark palettes, zero UI-dep bloat |
+| Styling | **NativeWind 4** (Tailwind) with daisyUI's `emerald`/`forest` palettes ported from the nearcade website — CSS-variable theming, safe-area-aware primitives |
 | i18n | Tiny type-safe dictionary layer (`en` / `zh` / `ja`) mirroring nearcade locales |
-| Maps | Custom OSM tile renderer (`src/components/TileMap.tsx`) — works on all platforms, no API keys |
+| Maps | Apple Maps via react-native-maps on iOS (OS-provided MapKit); custom OSM tile renderer (`src/components/map/TileMap.tsx`) on Android/web — react-native-maps is excluded from the Android build |
 | Types | Strict TypeScript; API DTOs mirror the server's Zod-validated response shapes |
 
 **API layer** (`src/api/client.ts`) is a single typed class over `fetch`: base-URL
@@ -94,7 +97,7 @@ app/                  # expo-router routes
   settings            #   preferences (modal)
 src/
   api/                # typed REST client + DTOs + react-query hooks
-  components/         # TileMap, MarkdownView, cards, UI kit
+  components/         # AppMap (platform split), TileMap, MarkdownView, PostRow, daisyUI-style kit
   i18n/ theme/ stores/ utils/
 scripts/
   gen-assets.mjs      # PNG icon/splash generator (zero deps)

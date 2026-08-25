@@ -95,9 +95,9 @@ jobs:
         run: |
           mkdir -p ~/artifacts/android/
           mv android/app/build/outputs/apk/release/app-release.apk \
-            ~/artifacts/android/Nearcade_${{ needs.metadata.outputs.version-name }}.apk
+            ~/artifacts/android/nearcade_${{ needs.metadata.outputs.version-name }}.apk
           mv android/app/build/outputs/bundle/release/app-release.aab \
-            ~/artifacts/android/Nearcade_${{ needs.metadata.outputs.version-name }}.aab
+            ~/artifacts/android/nearcade_${{ needs.metadata.outputs.version-name }}.aab
           ls -l ~/artifacts/android/
 
       - name: Upload artifact
@@ -154,7 +154,7 @@ jobs:
 
       - name: Archive without code signing
         run: |
-          xcodebuild -workspace ios/Nearcade.xcworkspace -scheme Nearcade \
+          xcodebuild -workspace ios/nearcade.xcworkspace -scheme nearcade \
           -configuration Release -archivePath $RUNNER_TEMP/App.xcarchive \
           -destination 'generic/platform=iOS' -sdk iphoneos \
           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
@@ -166,11 +166,11 @@ jobs:
           cp -R "$RUNNER_TEMP"/App.xcarchive/Products/Applications/*.app \
             $RUNNER_TEMP/Payload/
           cd $RUNNER_TEMP
-          zip -qry Nearcade_${{ needs.metadata.outputs.version-name }}.ipa Payload
+          zip -qry nearcade_${{ needs.metadata.outputs.version-name }}.ipa Payload
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: ios-unsigned-${{ needs.metadata.outputs.version-name }}
-          path: ${{ runner.temp }}/Nearcade_*.ipa
+          path: ${{ runner.temp }}/nearcade_*.ipa
           if-no-files-found: error

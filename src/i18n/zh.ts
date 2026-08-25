@@ -1,7 +1,7 @@
 import type { Dict } from './en';
 
 export const zh: Dict = {
-  'app.name': 'Nearcade',
+  'app.name': 'nearcade',
   'tabs.discover': '发现',
   'tabs.rankings': '排行',
   'tabs.community': '社区',
@@ -19,6 +19,9 @@ export const zh: Dict = {
   'common.search': '搜索',
   'common.more': '加载更多',
   'common.km': '公里',
+  'common.copy': '复制地址',
+  'common.copied': '已复制到剪贴板',
+  'common.paste': '粘贴',
   'common.machines': '台机器',
   'common.shops': '家店铺',
   'common.members': '名成员',
@@ -37,6 +40,9 @@ export const zh: Dict = {
   'discover.results': '附近有 {count} 家机厅',
   'discover.noResults': '没有找到机厅。试试扩大半径或减少筛选条件。',
   'discover.attendanceNow': '{count} 人正在游玩',
+  'discover.nobodyPlaying': '暂无人游玩',
+  'discover.tagline': '全球音游街机地图',
+  'discover.clearGames': '清除筛选',
   'shop.checkin': '签到',
   'shop.checkedIn': '你已在此签到',
   'shop.directions': '导航',

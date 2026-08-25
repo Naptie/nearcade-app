@@ -3,9 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "noUncheckedIndexedAccess": false,
+    "jsxImportSource": "nativewind",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["app/**/*.ts", "app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx", "expo-env.d.ts"]
+  "include": ["app/**/*.ts", "app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx", "expo-env.d.ts", "nativewind-env.d.ts"]
 }

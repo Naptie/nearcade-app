@@ -1,25 +1,39 @@
 import React, { useMemo, useState } from 'react';
-import { Linking, Platform, ScrollView, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Alert as RNAlert, ScrollView, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
-import { Screen, Text, Card, Button, LoadingView, ErrorState, Segmented } from '@/components/ui';
-import { OpenBadge, GameChip } from '@/components/ShopCard';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Btn,
+  Card,
+  ErrorState,
+  LoadingView,
+  Screen,
+  SegTabs,
+} from '@/components/ui';
+import { OpenBadge } from '@/components/ShopCard';
 import { MarkdownView } from '@/components/MarkdownView';
-import { UserAvatar } from '@/components/ShopCard';
-import { useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
-import { useAttendance, useGameTitles, useShop, useShopChangelog, useShopComments } from '@/hooks/api';
+import {
+  useAttendance,
+  useGameTitles,
+  useShop,
+  useShopChangelog,
+  useShopComments,
+} from '@/hooks/api';
 import { computeIsOpen, formatRelativeTime, openingHoursText } from '@/utils/format';
 import { titleColor } from '@/utils/gameTitles';
+import { openDirections } from '@/utils/mapLinks';
 
 type TabKey = 'games' | 'comments' | 'changelog';
 
 export default function ShopDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const shopId = Number(id);
-  const router = useRouter();
-  const { colors } = useTheme();
   const { t, locale } = useI18n();
   const [tab, setTab] = useState<TabKey>('games');
 
@@ -39,17 +53,14 @@ export default function ShopDetailScreen() {
   if (shopQuery.isError) return <ErrorState error={shopQuery.error} onRetry={() => void shopQuery.refetch()} />;
   const shop = shopQuery.data!;
   const isOpen =
-    shop.isOpen ?? computeIsOpen(shop.openingHours, shop.timezone?.offset != null ? shop.timezone.offset * 60 : undefined);
+    shop.isOpen ??
+    computeIsOpen(shop.openingHours, shop.timezone?.offset != null ? shop.timezone.offset * 60 : undefined);
   const addressLine = [...(shop.address.general ?? []), shop.address.detailed].filter(Boolean).join(' ');
 
-  const openDirections = () => {
-    const [lng, lat] = shop.location.coordinates;
-    const label = encodeURIComponent(shop.name);
-    const url =
-      Platform.OS === 'ios'
-        ? `https://maps.apple.com/?daddr=${lat},${lng}&q=${label}`
-        : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    void Linking.openURL(url);
+  const copyAddress = async () => {
+    void Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light);
+    await Clipboard.setStringAsync(addressLine || `${shop.name}`);
+    RNAlert.alert(t('common.copied'));
   };
 
   // Plain computation (post-early-return): cheap enough not to memoize.
@@ -65,74 +76,87 @@ export default function ShopDetailScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <Card style={{ gap: 10 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <Text style={{ fontSize: 21, fontWeight: '900', flexShrink: 1 }}>{shop.name}</Text>
+        <View className="gap-3">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text className="shrink text-[21px] font-extrabold tracking-tight text-base-content">{shop.name}</Text>
             <OpenBadge isOpen={isOpen} />
-            {shop.isClaimed ? (
-              <View style={{ backgroundColor: `${colors.accent}22`, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.accent }}>{t('shop.claimed')}</Text>
-              </View>
-            ) : null}
-            {shop.isLocked ? (
-              <View style={{ backgroundColor: `${colors.warning}22`, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.warning }}>{t('shop.locked')}</Text>
-              </View>
-            ) : null}
+            {shop.isClaimed ? <Badge color="accent">{t('shop.claimed')}</Badge> : null}
+            {shop.isLocked ? <Badge color="warning">{t('shop.locked')}</Badge> : null}
           </View>
-          <Text style={{ fontSize: 13, color: colors.textMuted }}>{addressLine}</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Button label={t('shop.directions')} icon={<Ionicons name="map" size={15} color="#fff" />} onPress={openDirections} small />
+
+          {addressLine ? (
+            <Alert type="info" icon="location">
+              {addressLine}
+            </Alert>
+          ) : null}
+
+          {/* Action row */}
+          <View className="flex-row gap-2">
+            <Btn
+              label={t('shop.directions')}
+              variant="primary"
+              size="sm"
+              icon="map"
+              onPress={() =>
+                void openDirections(
+                  shop.location.coordinates[1],
+                  shop.location.coordinates[0],
+                  shop.name
+                )
+              }
+            />
+            <Btn label={t('common.copy')} variant="soft" size="sm" icon="copy" onPress={() => void copyAddress()} />
           </View>
-          <Text style={{ fontSize: 12.5, color: colors.textMuted }}>
-            {t('shop.hours')}: {openingHoursText(shop.openingHours)}
-            {shop.timezone ? ` (${shop.timezone.name})` : ''}
-          </Text>
-        </Card>
+
+          <View className="flex-row items-center gap-1.5">
+            <Ionicons name="time" size={13} className="text-primary" />
+            <Text className="flex-1 text-[12.5px] font-medium text-base-content/55">
+              {openingHoursText(shop.openingHours)}
+              {shop.timezone ? ` · ${shop.timezone.name}` : ''}
+            </Text>
+          </View>
+        </View>
+
+        {/* Description (site renders the markdown description here) */}
+        {shop.comment ? (
+          <Card className="mt-4">
+            <MarkdownView source={shop.comment} />
+          </Card>
+        ) : null}
 
         {/* Tabs */}
-        <View style={{ marginTop: 14 }}>
-          <Segmented
-            value={tab}
-            onChange={(v) => setTab(v as TabKey)}
-            options={[
-              { value: 'games', label: t('shop.games') },
-              { value: 'comments', label: t('shop.comments') },
-              { value: 'changelog', label: t('shop.changelog') },
-            ]}
-          />
-        </View>
+        <SegTabs
+          className="mt-4"
+          value={tab}
+          onChange={(v) => setTab(v)}
+          options={[
+            { value: 'games', label: t('shop.games') },
+            { value: 'comments', label: t('shop.comments') },
+            { value: 'changelog', label: t('shop.changelog') },
+          ]}
+        />
 
         {/* Games tab */}
         {tab === 'games' ? (
-          <View style={{ marginTop: 14, gap: 8 }}>
-            {reportedTotal > 0 ? (
-              <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="pulse" size={16} color={colors.success} />
-                <Text style={{ color: colors.success, fontWeight: '700' }}>
-                  {t('discover.attendanceNow', { count: reportedTotal })}
-                </Text>
-              </Card>
-            ) : null}
+          <View className="mt-3.5 gap-2">
+            <LiveAttendanceBanner total={attendanceQuery.data?.total ?? 0} reported={reportedTotal} />
             {rankedGames.map((game) => (
               <Card key={game.gameId}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View style={{ width: 4, height: 34, borderRadius: 2, backgroundColor: titleColor(game.titleId) }} />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={{ fontWeight: '800', fontSize: 14.5 }}>{namesByTitleId.get(game.titleId) ?? game.name}</Text>
-                    <Text style={{ fontSize: 12, color: colors.textMuted }}>
-                      {game.version}
-                      {game.cost ? ` · ${game.cost}` : ''}
-                      {game.quantity > 1 ? ` · ×${game.quantity}` : ''}
+                <View className="flex-row items-center gap-3">
+                  <View style={{ width: 4, height: 36, borderRadius: 2, backgroundColor: titleColor(game.titleId) }} />
+                  <View className="flex-1 gap-0.5">
+                    <Text className="text-[14px] font-bold tracking-tight text-base-content" numberOfLines={1}>
+                      {namesByTitleId.get(game.titleId) ?? game.name}
+                    </Text>
+                    <Text className="text-[11.5px] font-medium text-base-content/50" numberOfLines={1}>
+                      {[game.version, game.cost, game.quantity > 1 ? `×${game.quantity}` : null]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </Text>
                   </View>
-                  {game.total > 0 ? (
-                    <View style={{ backgroundColor: `${colors.primary}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-                      <Text style={{ color: colors.primary, fontWeight: '800', fontSize: 12.5 }}>{game.total}</Text>
-                    </View>
-                  ) : null}
+                  {game.total > 0 ? <Badge color={game.total >= 10 ? 'warning' : 'success'}>{`${game.total} 🎮`}</Badge> : null}
                 </View>
               </Card>
             ))}
@@ -141,35 +165,27 @@ export default function ShopDetailScreen() {
 
         {/* Comments tab */}
         {tab === 'comments' ? (
-          <View style={{ marginTop: 14, gap: 10 }}>
+          <View className="mt-3.5 gap-2.5">
             {commentsQuery.isLoading ? <LoadingView /> : null}
             {!commentsQuery.isLoading && comments.length === 0 ? (
-              <Text style={{ color: colors.textMuted, textAlign: 'center', paddingVertical: 24 }}>—</Text>
+              <EmptyCommentHint />
             ) : null}
             {comments.map((comment) => (
               <Card key={comment.id}>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <UserAvatar name={comment.author?.displayName ?? comment.author?.name} image={comment.author?.image} size={32} />
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Text style={{ fontWeight: '700', fontSize: 13 }}>
+                <View className="flex-row gap-2.5">
+                  <Avatar name={comment.author?.displayName ?? comment.author?.name} image={comment.author?.image} size={32} />
+                  <View className="flex-1 gap-1">
+                    <View className="flex-row items-center gap-2">
+                      <Text className="text-[13px] font-bold text-base-content">
                         {comment.author?.displayName || comment.author?.name || comment.createdBy}
                       </Text>
-                      <Text style={{ fontSize: 11, color: colors.textMuted }}>{formatRelativeTime(comment.createdAt, locale)}</Text>
+                      <Text className="text-[11px] text-base-content/45">{formatRelativeTime(comment.createdAt, locale)}</Text>
                     </View>
                     <MarkdownView source={comment.content} />
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <Ionicons name="arrow-up-circle" size={16} color={colors.textMuted} />
-                        <Text style={{ fontSize: 12, color: colors.textMuted }}>{comment.upvotes}</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <Ionicons name="arrow-down-circle" size={16} color={colors.textMuted} />
-                        <Text style={{ fontSize: 12, color: colors.textMuted }}>{comment.downvotes}</Text>
-                      </View>
-                      {comment.parentCommentId ? (
-                        <Text style={{ fontSize: 11, color: colors.accent }}>{t('post.reply')}</Text>
-                      ) : null}
+                    <View className="mt-0.5 flex-row items-center gap-3">
+                      <VotePill direction="up" count={comment.upvotes} active={comment.vote?.voteType === 'upvote'} />
+                      <VotePill direction="down" count={comment.downvotes} active={comment.vote?.voteType === 'downvote'} />
+                      {comment.parentCommentId ? <Text className="text-[11px] font-bold text-accent">{t('post.reply')}</Text> : null}
                     </View>
                   </View>
                 </View>
@@ -180,31 +196,33 @@ export default function ShopDetailScreen() {
 
         {/* Changelog tab */}
         {tab === 'changelog' ? (
-          <View style={{ marginTop: 14, gap: 8 }}>
+          <View className="mt-3.5 gap-2">
             {changelogQuery.isLoading ? <LoadingView /> : null}
             {changelogEntries.map((entry) => (
-              <Card key={entry.id} style={{ paddingVertical: 10 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700' }}>
+              <Card key={entry.id} padding={false} className="p-3">
+                <View className="flex-row items-start justify-between gap-2">
+                  <View className="flex-1">
+                    <Text className="text-[13px] font-bold text-base-content">
                       {entry.action}
                       {entry.fieldInfo?.field ? ` · ${entry.fieldInfo.field}` : ''}
                     </Text>
                     {(entry.oldValue || entry.newValue) && (
-                      <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }} numberOfLines={2}>
+                      <Text className="mt-1 text-[12px] font-medium text-base-content/50" numberOfLines={2}>
                         {entry.oldValue ? `${entry.oldValue} → ` : ''}
                         {entry.newValue ?? ''}
                       </Text>
                     )}
                   </View>
-                  <Text style={{ fontSize: 11, color: colors.textMuted }}>{formatRelativeTime(entry.createdAt, locale)}</Text>
+                  <Text className="text-[11px] text-base-content/45">{formatRelativeTime(entry.createdAt, locale)}</Text>
                 </View>
               </Card>
             ))}
             {changelogQuery.hasNextPage ? (
-              <Button
+              <Btn
                 label={t('common.more')}
                 variant="ghost"
+                size="sm"
+                className="self-center"
                 loading={changelogQuery.isFetchingNextPage}
                 onPress={() => void changelogQuery.fetchNextPage()}
               />
@@ -213,5 +231,40 @@ export default function ShopDetailScreen() {
         ) : null}
       </ScrollView>
     </Screen>
+  );
+}
+
+function LiveAttendanceBanner({ total, reported }: { total: number; reported: number }) {
+  const { t } = useI18n();
+  const count = Math.max(total, reported);
+  if (count <= 0) return null;
+  return (
+    <Alert type={count >= 15 ? 'error' : count >= 8 ? 'warning' : 'success'} icon="pulse">
+      {t('discover.attendanceNow', { count })}
+    </Alert>
+  );
+}
+
+function VotePill({ direction, count, active }: { direction: 'up' | 'down'; count: number; active: boolean }) {
+  const cls = active
+    ? direction === 'up'
+      ? 'bg-success/20 text-success'
+      : 'bg-error/20 text-error'
+    : 'bg-base-content/5 text-base-content/50';
+  return (
+    <View className={`flex-row items-center gap-1 rounded-lg px-2 py-0.5 ${cls}`}>
+      <Ionicons name={direction === 'up' ? 'arrow-up' : 'arrow-down'} size={12} />
+      <Text className="text-[11.5px] font-bold">{count}</Text>
+    </View>
+  );
+}
+
+function EmptyCommentHint() {
+  const { t } = useI18n();
+  return (
+    <View className="items-center py-8">
+      <Ionicons name="chatbubble-ellipses-outline" size={26} className="text-base-content/30" />
+      <Text className="mt-2 text-[13px] text-base-content/45">{t('common.empty')}</Text>
+    </View>
   );
 }

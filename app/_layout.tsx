@@ -1,12 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import '../global.css';
+
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+import { useFonts, Sora_400Regular, Sora_500Medium, Sora_600SemiBold, Sora_700Bold, Sora_800ExtraBold } from '@expo-google-fonts/sora';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider, useTheme } from '@/theme';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useColorScheme } from 'nativewind';
+import { useSettings } from '@/stores/settings';
+import { useSession } from '@/stores/session';
+import { useThemePalette } from '@/theme/palette';
 import { I18nProvider } from '@/i18n';
 import { ApiProvider } from '@/api';
-import { useSession } from '@/stores/session';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,54 +24,107 @@ const queryClient = new QueryClient({
   },
 });
 
+void SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/** Applies the user's theme preference to NativeWind's color scheme. */
+function ThemeSync() {
+  const { setColorScheme } = useColorScheme();
+  const themeOverride = useSettings((s) => s.themeOverride);
+  React.useEffect(() => {
+    setColorScheme(themeOverride === 'dark' ? 'dark' : themeOverride === 'light' ? 'light' : 'system');
+  }, [themeOverride, setColorScheme]);
+  return null;
+}
+
 function InnerLayout() {
-  const { colors, isDark } = useTheme();
-  const hydrated = useSession((s) => s.hydrated);
-  const [ready, setReady] = useState(false);
+  const palette = useThemePalette();
+  const hydrated = useSessionHydrated();
+  const [fontsLoaded] = useFonts({
+    Sora_400Regular,
+    Sora_500Medium,
+    Sora_600SemiBold,
+    Sora_700Bold,
+    Sora_800ExtraBold,
+  });
 
   useEffect(() => {
-    // Give zustand persist one tick to rehydrate before first render.
-    const timer = setTimeout(() => setReady(true), 50);
-    return () => clearTimeout(timer);
-  }, []);
+    if (hydrated && fontsLoaded) void SplashScreen.hideAsync().catch(() => {});
+  }, [hydrated, fontsLoaded]);
 
-  if (!hydrated && !ready) {
-    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  if (!hydrated || !fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: palette.background }} />;
   }
 
   return (
     <>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <ThemeSync />
+      <StatusBar style={palette.statusBarStyle} />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
+          contentStyle: { backgroundColor: palette.background },
           animation: 'slide_from_right',
         }}
       >
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="shop/[id]" />
-        <Stack.Screen name="university/[id]" />
-        <Stack.Screen name="club/[id]" />
-        <Stack.Screen name="post/[id]" />
-        <Stack.Screen name="login" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="notifications" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="settings" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="shop/[id]" options={detailHeaderOptions(palette)} />
+        <Stack.Screen name="university/[id]" options={detailHeaderOptions(palette)} />
+        <Stack.Screen name="club/[id]" options={detailHeaderOptions(palette)} />
+        <Stack.Screen name="post/[id]" options={detailHeaderOptions(palette)} />
+        <Stack.Screen
+          name="login"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+            ...detailHeaderOptions(palette),
+          }}
+        />
+        <Stack.Screen
+          name="notifications"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+            ...detailHeaderOptions(palette),
+          }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+            ...detailHeaderOptions(palette),
+          }}
+        />
       </Stack>
     </>
   );
 }
 
+function detailHeaderOptions(palette: ReturnType<typeof useThemePalette>) {
+  return {
+    headerShown: true,
+    headerShadowVisible: false,
+    headerBackTitle: '',
+    headerTintColor: palette.primary,
+    headerStyle: { backgroundColor: palette.background },
+    headerTitleStyle: { fontWeight: '700' as const, fontSize: 17 },
+  };
+}
+
+function useSessionHydrated(): boolean {
+  return useSession((s) => s.hydrated);
+}
+
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
+      <SafeAreaProvider>
         <I18nProvider>
           <ApiProvider>
             <InnerLayout />
           </ApiProvider>
         </I18nProvider>
-      </ThemeProvider>
+      </SafeAreaProvider>
     </QueryClientProvider>
   );
 }

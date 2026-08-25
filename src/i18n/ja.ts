@@ -1,7 +1,7 @@
 import type { Dict } from './en';
 
 export const ja: Dict = {
-  'app.name': 'Nearcade',
+  'app.name': 'nearcade',
   'tabs.discover': 'さがす',
   'tabs.rankings': 'ランキング',
   'tabs.community': 'コミュニティ',
@@ -19,6 +19,9 @@ export const ja: Dict = {
   'common.search': '検索',
   'common.more': 'もっと見る',
   'common.km': 'km',
+  'common.copy': 'コピー',
+  'common.copied': 'クリップボードにコピーしました',
+  'common.paste': '貼り付け',
   'common.machines': '台',
   'common.shops': '店舗',
   'common.members': '人',
@@ -37,6 +40,9 @@ export const ja: Dict = {
   'discover.results': '近くに {count} 店舗',
   'discover.noResults': '見つかりませんでした。半径を広げるか条件を減らしてください。',
   'discover.attendanceNow': '{count} 人がプレイ中',
+  'discover.nobodyPlaying': '誰もプレイしていません',
+  'discover.tagline': '世界の音ゲーマップ',
+  'discover.clearGames': 'フィルターをクリア',
   'shop.checkin': 'チェックイン',
   'shop.checkedIn': 'チェックイン済み',
   'shop.directions': '経路',

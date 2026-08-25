@@ -1,24 +1,24 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Screen, Text, Card, LoadingView, ErrorState, Button } from '@/components/ui';
+import {
+  Avatar,
+  Badge,
+  Btn,
+  Card,
+  ErrorState,
+  LoadingView,
+  Screen,
+} from '@/components/ui';
 import { MarkdownView } from '@/components/MarkdownView';
-import { UserAvatar } from '@/components/ShopCard';
 import { formatRelativeTime } from '@/utils/format';
 import { useI18n } from '@/i18n';
-import { useTheme } from '@/theme';
-import {
-  useCommentOnPostMutation,
-  useIsAuthed,
-  usePost,
-  useVotePostMutation,
-} from '@/hooks/api';
+import { useCommentOnPostMutation, useIsAuthed, usePost, useVotePostMutation } from '@/hooks/api';
 
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useTheme();
   const { t, locale } = useI18n();
   const authed = useIsAuthed();
 
@@ -65,159 +65,140 @@ export default function PostScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
-        <Card style={{ gap: 10 }}>
-          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-            {post.isPinned ? (
-              <View style={{ backgroundColor: `${colors.primary}20`, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>{t('post.pinned')}</Text>
-              </View>
-            ) : null}
-            {post.isLocked ? (
-              <View style={{ backgroundColor: `${colors.warning}22`, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.warning }}>{t('post.locked')}</Text>
-              </View>
-            ) : null}
-          </View>
-          <Text style={{ fontSize: 19, fontWeight: '900' }}>{post.title}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <UserAvatar name={post.author?.displayName ?? post.author?.name} image={post.author?.image} size={26} />
-            <Text style={{ fontSize: 12.5, fontWeight: '700', color: colors.textMuted }}>
-              {post.author?.displayName || post.author?.name || '—'}
-            </Text>
-            <Text style={{ fontSize: 11.5, color: colors.textMuted }}>{formatRelativeTime(post.createdAt, locale)}</Text>
-          </View>
-
-          {/* Vote bar */}
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-            <Pressable
-              onPress={() => onVote('upvote')}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 5,
-                borderRadius: 8,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                backgroundColor: userVote === 'upvote' ? `${colors.success}25` : colors.surfaceAlt,
-              }}
-            >
-              <Ionicons name="arrow-up" size={15} color={userVote === 'upvote' ? colors.success : colors.textMuted} />
-              <Text style={{ fontSize: 13, fontWeight: '700', color: userVote === 'upvote' ? colors.success : colors.textMuted }}>
-                {post.upvotes}
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+          {/* Post card — mirrors the site's PostCard */}
+          <Card className="gap-2.5">
+            <View className="flex-row flex-wrap gap-1.5">
+              {post.isPinned ? (
+                <Badge color="primary" className="flex-row items-center gap-1">
+                  <Ionicons name="pin" size={10} /> {t('post.pinned')}
+                </Badge>
+              ) : null}
+              {post.isLocked ? (
+                <Badge color="warning" className="flex-row items-center gap-1">
+                  <Ionicons name="lock-closed" size={10} /> {t('post.locked')}
+                </Badge>
+              ) : null}
+            </View>
+            <Text className="text-[19px] font-extrabold leading-6 tracking-tight text-base-content">{post.title}</Text>
+            <View className="flex-row items-center gap-2">
+              <Avatar name={post.author?.displayName ?? post.author?.name} image={post.author?.image} size={26} />
+              <Text className="text-[12.5px] font-bold text-base-content/60">
+                {post.author?.displayName || post.author?.name || '—'}
               </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => onVote('downvote')}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 5,
-                borderRadius: 8,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                backgroundColor: userVote === 'downvote' ? `${colors.danger}25` : colors.surfaceAlt,
-              }}
-            >
-              <Ionicons name="arrow-down" size={15} color={userVote === 'downvote' ? colors.danger : colors.textMuted} />
-              <Text style={{ fontSize: 13, fontWeight: '700', color: userVote === 'downvote' ? colors.danger : colors.textMuted }}>
-                {post.downvotes}
-              </Text>
-            </Pressable>
-          </View>
-        </Card>
+              <Text className="text-[11.5px] text-base-content/45">{formatRelativeTime(post.createdAt, locale)}</Text>
+            </View>
 
-        {/* Body */}
-        {post.content ? (
-          <Card style={{ marginTop: 12 }}>
-            <MarkdownView source={post.content} />
-          </Card>
-        ) : null}
-
-        {/* Comments */}
-        <Text style={{ fontSize: 16, fontWeight: '800', marginTop: 16, marginBottom: 8 }}>
-          {t('post.comments', { count: comments.length })}
-        </Text>
-        {comments.map((comment) => (
-          <Card key={comment.id} style={{ marginLeft: comment.parentCommentId ? 24 : 0, marginBottom: 8 }}>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <UserAvatar
-                name={comment.author?.displayName ?? comment.author?.name}
-                image={comment.author?.image}
-                size={28}
-              />
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={{ fontSize: 12.5, fontWeight: '700' }}>
-                    {comment.author?.displayName || comment.author?.name || '—'}
-                  </Text>
-                  <Text style={{ fontSize: 10.5, color: colors.textMuted }}>{formatRelativeTime(comment.createdAt, locale)}</Text>
-                </View>
-                {comment.content ? (
-                  <Text style={{ fontSize: 14, lineHeight: 21, marginTop: 3 }}>{comment.content}</Text>
-                ) : null}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 4 }}>
-                  <Pressable
-                    onPress={() => {
-                      setReplyTo(comment.id);
-                      setDraft(`@${(comment.author?.displayName || comment.author?.name) ?? ''} `);
-                    }}
-                  >
-                    <Text style={{ fontSize: 11.5, color: colors.accent, fontWeight: '700' }}>{t('post.reply')}</Text>
-                  </Pressable>
-                  <Text style={{ fontSize: 11.5, color: colors.textMuted }}>▲ {comment.upvotes}</Text>
-                  <Text style={{ fontSize: 11.5, color: colors.textMuted }}>▽ {comment.downvotes}</Text>
-                </View>
-              </View>
+            {/* Vote bar */}
+            <View className="mt-1 flex-row gap-2">
+              <Pressable
+                onPress={() => onVote('upvote')}
+                className={`flex-row items-center gap-1.5 rounded-xl px-3 py-1.5 ${
+                  userVote === 'upvote' ? 'bg-success/20' : 'bg-base-content/5 active:bg-success/15'
+                }`}
+              >
+                <Ionicons
+                  name="arrow-up"
+                  size={15}
+                  className={userVote === 'upvote' ? 'text-success' : 'text-base-content/55'}
+                />
+                <Text
+                  className={`text-[13px] font-bold ${userVote === 'upvote' ? 'text-success' : 'text-base-content/55'}`}
+                >
+                  {post.upvotes}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => onVote('downvote')}
+                className={`flex-row items-center gap-1.5 rounded-xl px-3 py-1.5 ${
+                  userVote === 'downvote' ? 'bg-error/20' : 'bg-base-content/5 active:bg-error/15'
+                }`}
+              >
+                <Ionicons
+                  name="arrow-down"
+                  size={15}
+                  className={userVote === 'downvote' ? 'text-error' : 'text-base-content/55'}
+                />
+                <Text
+                  className={`text-[13px] font-bold ${userVote === 'downvote' ? 'text-error' : 'text-base-content/55'}`}
+                >
+                  {post.downvotes}
+                </Text>
+              </Pressable>
             </View>
           </Card>
-        ))}
-      </ScrollView>
 
-      {/* Compose bar */}
-      <KeyboardAvoidingWrapper>
+          {/* Body */}
+          {post.content ? (
+            <Card className="mt-3">
+              <MarkdownView source={post.content} />
+            </Card>
+          ) : null}
+
+          {/* Comments */}
+          <Text className="mb-2 mt-4 text-[16px] font-extrabold tracking-tight text-base-content">
+            {t('post.comments', { count: comments.length })}
+          </Text>
+          {comments.map((comment) => (
+            <Card key={comment.id} padding={false} className={`mb-2 p-3 ${comment.parentCommentId ? 'ml-6' : ''}`}>
+              <View className="flex-row gap-2.5">
+                <Avatar name={comment.author?.displayName ?? comment.author?.name} image={comment.author?.image} size={28} />
+                <View className="flex-1">
+                  <View className="flex-row items-center gap-1.5">
+                    <Text className="text-[12.5px] font-bold text-base-content">
+                      {comment.author?.displayName || comment.author?.name || '—'}
+                    </Text>
+                    <Text className="text-[10.5px] text-base-content/45">{formatRelativeTime(comment.createdAt, locale)}</Text>
+                  </View>
+                  {comment.content ? (
+                    <Text className="mt-0.5 text-[14px] leading-[21px] text-base-content/90">{comment.content}</Text>
+                  ) : null}
+                  <View className="mt-1 flex-row items-center gap-3.5">
+                    <Pressable
+                      onPress={() => {
+                        setReplyTo(comment.id);
+                        setDraft(`@${(comment.author?.displayName || comment.author?.name) ?? ''} `);
+                      }}
+                    >
+                      <Text className="text-[11.5px] font-bold text-accent">{t('post.reply')}</Text>
+                    </Pressable>
+                    <Text className="text-[11.5px] font-semibold text-success">▲ {comment.upvotes}</Text>
+                    <Text className="text-[11.5px] font-semibold text-error">▽ {comment.downvotes}</Text>
+                  </View>
+                </View>
+              </View>
+            </Card>
+          ))}
+        </ScrollView>
+
+        {/* Compose bar (inset-safe, keyboard-aware) */}
         <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            padding: 12,
-            paddingBottom: 18,
-            backgroundColor: colors.surface,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
-            flexDirection: 'row',
-            gap: 8,
-            alignItems: 'center',
-          }}
+          className="flex-row items-center gap-2 border-t border-base-300/50 bg-base-100 p-3"
+          style={{ paddingBottom: 12 }}
         >
           <TextInput
             value={draft}
             onChangeText={setDraft}
             placeholder={authed ? t('post.writeComment') : t('shop.commentLoginRequired')}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor="#8A8A8A"
             editable={authed}
             multiline
-            style={{
-              flex: 1,
-              maxHeight: 90,
-              color: colors.text,
-              fontSize: 14,
-              backgroundColor: colors.surfaceAlt,
-              borderRadius: 10,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-            }}
+            className="max-h-[90px] flex-1 rounded-xl bg-base-200 px-3 py-2 text-[14px] text-base-content"
           />
-          <Button label={t('post.send')} small loading={commentMutation.isPending} disabled={!authed || !draft.trim()} onPress={submitComment} />
+          <Btn
+            label={t('post.send')}
+            size="sm"
+            loading={commentMutation.isPending}
+            disabled={!authed || !draft.trim()}
+            onPress={submitComment}
+          />
         </View>
-      </KeyboardAvoidingWrapper>
+      </KeyboardAvoidingView>
     </Screen>
   );
-}
-
-function KeyboardAvoidingWrapper({ children }: { children: React.ReactNode }) {
-  // Kept as a wrapper so we can add platform-specific keyboard handling later.
-  return <>{children}</>;
 }

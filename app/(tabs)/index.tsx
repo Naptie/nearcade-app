@@ -1,25 +1,29 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  FlatList,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { FlatList, Modal, Pressable, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Screen, Text, Card, Chip, Button, LoadingView, ErrorState, EmptyState } from '@/components/ui';
-import { TileMap, type MapMarker } from '@/components/TileMap';
+import {
+  Alert,
+  Btn,
+  Chip,
+  EmptyState,
+  ErrorState,
+  IconButton,
+  Input,
+  LoadingView,
+  Screen,
+  SectionTitle,
+  Wordmark,
+} from '@/components/ui';
+import { AppMap, radiusToRegion } from '@/components/map/AppMap';
+import type { MapPin } from '@/components/map/types';
 import { ShopCard } from '@/components/ShopCard';
-import { useTheme } from '@/theme';
+import { useThemePalette } from '@/theme/palette';
 import { useI18n } from '@/i18n';
 import { useDiscover, useGameTitles } from '@/hooks/api';
 import { useSettings } from '@/stores/settings';
-import { titleName } from '@/utils/gameTitles';
-import { useRouter } from 'expo-router';
 
 const RADIUS_OPTIONS = [1, 2, 5, 10, 20, 30];
 
@@ -27,8 +31,10 @@ const RADIUS_OPTIONS = [1, 2, 5, 10, 20, 30];
 // launch before any permission is granted.
 const FALLBACK = { latitude: 31.2304, longitude: 121.4737 };
 
+const TABBAR_CLEARANCE = 84;
+
 export default function DiscoverScreen() {
-  const { colors } = useTheme();
+  const palette = useThemePalette();
   const { t } = useI18n();
   const router = useRouter();
   const lastLatitude = useSettings((s) => s.lastLatitude);
@@ -55,12 +61,15 @@ export default function DiscoverScreen() {
   const discoverQuery = useDiscover(lat, lng, radiusKm, selectedTitles);
   const shops = discoverQuery.data?.shops ?? [];
 
-  const markers = useMemo<MapMarker[]>(
+  const region = useMemo(() => radiusToRegion(lat, lng, radiusKm), [lat, lng, radiusKm]);
+  const pins = useMemo<MapPin[]>(
     () =>
-      shops.slice(0, 30).map((shop) => ({
+      shops.slice(0, 40).map((shop) => ({
+        id: String(shop.id),
         latitude: shop.location.coordinates[1],
         longitude: shop.location.coordinates[0],
-        onPress: () => router.push(`/shop/${shop.id}` as never),
+        title: shop.name,
+        onPress: () => router.push(`/shop/${shop.id}`),
       })),
     [shops, router]
   );
@@ -75,7 +84,7 @@ export default function DiscoverScreen() {
         accuracy: Location.Accuracy.Balanced,
       });
       setLocation(pos.coords.latitude, pos.coords.longitude);
-      if (Haptics.impactAsync) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light);
     } catch {
       setLocationError(t('discover.locationFailed'));
     } finally {
@@ -88,77 +97,83 @@ export default function DiscoverScreen() {
   };
 
   return (
-    <Screen>
+    <Screen bottomInset={TABBAR_CLEARANCE}>
       <FlatList
         data={shops}
         keyExtractor={(item) => String(item.id)}
         refreshing={discoverQuery.isRefetching}
         onRefresh={() => void discoverQuery.refetch()}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
-          <View style={{ gap: 12, marginBottom: 8 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 24, fontWeight: '900' }}>{t('discover.title')}</Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <Pressable
-                  onPress={locate}
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    backgroundColor: colors.surface,
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: colors.border,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Ionicons name="navigate" size={18} color={colors.accent} />
-                </Pressable>
-                <Pressable
+          <View className="mb-2 gap-3.5">
+            {/* Brand header */}
+            <View className="flex-row items-end justify-between">
+              <View>
+                <Wordmark size={26} />
+                <Text className="mt-0.5 text-[12px] font-medium text-base-content/50">{t('discover.tagline')}</Text>
+              </View>
+              <View className="flex-row gap-2">
+                <IconButton
+                  icon="navigate"
+                  variant="soft"
+                  loading={locating}
+                  onPress={() => void locate()}
+                  accessibilityLabel={t('discover.useGps')}
+                />
+                <IconButton
+                  icon="options-outline"
+                  variant="ghost"
                   onPress={() => setPickerOpen(true)}
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    backgroundColor: colors.surface,
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderColor: colors.border,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
-                </Pressable>
+                  accessibilityLabel={t('discover.pickLocation')}
+                />
               </View>
             </View>
 
-            {locationError ? (
-              <Text style={{ fontSize: 12.5, color: colors.danger }}>{locationError}</Text>
-            ) : null}
+            {locationError ? <Alert type="warning" icon="location">{locationError}</Alert> : null}
 
-            {/* Filter row */}
-            <View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {RADIUS_OPTIONS.map((r) => (
-                  <Chip key={r} label={`${r} ${t('common.km')}`} active={radiusKm === r} onPress={() => setRadiusKm(r)} />
-                ))}
+            {/* Discover panel — mirrors the site's hero panel */}
+            <View className="gap-2.5 rounded-2xl border-2 border-base-300/40 bg-base-200/60 p-3.5">
+              <View className="flex-row items-center gap-2">
+                <Ionicons name="pulse" size={16} className="text-primary" />
+                <Text className="text-[14px] font-extrabold tracking-tight text-base-content">{t('discover.title')}</Text>
+                <View className="flex-1" />
                 <Chip
                   label={`${t('discover.games')}${selectedTitles.length ? ` · ${selectedTitles.length}` : ''}`}
                   active={selectedTitles.length > 0}
+                  icon="game-controller"
+                  color="secondary"
                   onPress={() => setGamesOpen(true)}
-                  color={colors.accent}
                 />
-              </ScrollView>
+              </View>
+
+              {/* Radius selector (site uses a slider; discrete chips read better on mobile) */}
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={RADIUS_OPTIONS}
+                keyExtractor={(r) => String(r)}
+                ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
+                renderItem={({ item }) => (
+                  <Chip label={`${item} ${t('common.km')}`} active={radiusKm === item} onPress={() => setRadiusKm(item)} />
+                )}
+              />
             </View>
 
-            {/* Map */}
-            <TileMap center={{ latitude: lat, longitude: lng }} markers={markers} height={190} initialZoom={11} />
+            {/* Live map — Apple Maps on iOS, featherweight OSM elsewhere */}
+            <View className="h-52 overflow-hidden rounded-2xl border border-base-300/40">
+              <AppMap region={region} pins={pins} />
+            </View>
 
-            <Text style={{ fontSize: 13, color: colors.textMuted }}>
-              {discoverQuery.isLoading ? t('common.loading') : t('discover.results', { count: shops.length })}
-            </Text>
+            <SectionTitle
+              title={
+                discoverQuery.isLoading
+                  ? t('common.loading')
+                  : discoverQuery.isError
+                    ? t('common.error')
+                    : t('discover.results', { count: shops.length })
+              }
+            />
           </View>
         }
         renderItem={({ item }) => (
@@ -172,45 +187,34 @@ export default function DiscoverScreen() {
           ) : discoverQuery.isError ? (
             <ErrorState error={discoverQuery.error} onRetry={() => void discoverQuery.refetch()} />
           ) : (
-            <EmptyState message={t('discover.noResults')} icon={<Ionicons name="sad" size={40} color={colors.textMuted} />} />
+            <EmptyState message={t('discover.noResults')} icon="map-outline" />
           )
         }
       />
 
-      {/* Manual location picker */}
       <LocationPickerModal
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
-        onApply={(latitude, longitude) => {
-          setLocation(latitude, longitude);
+        onApply={(newLat, newLng) => {
+          setLocation(newLat, newLng);
           setPickerOpen(false);
         }}
         initialLatitude={lat}
         initialLongitude={lng}
       />
 
-      {/* Game filter modal */}
-      <Modal visible={gamesOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setGamesOpen(false)}>
-        <Screen style={{ paddingTop: 48, paddingHorizontal: 16 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-            <Text style={{ fontSize: 20, fontWeight: '900' }}>{t('discover.gameFilter')}</Text>
-            <Button label={t('common.close')} variant="ghost" small onPress={() => setGamesOpen(false)} />
-          </View>
-          <ScrollView contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 32 }}>
-            {(titlesQuery.data?.titles ?? []).map((title) => (
-              <Chip
-                key={title.id}
-                label={titleName(title, namesByTitleId)}
-                active={selectedTitles.includes(title.id)}
-                onPress={() => toggleTitle(title.id)}
-              />
-            ))}
-          </ScrollView>
-        </Screen>
-      </Modal>
+      <GamesFilterModal
+        open={gamesOpen}
+        onClose={() => setGamesOpen(false)}
+        selected={selectedTitles}
+        toggle={toggleTitle}
+        clear={() => setSelectedTitles([])}
+      />
     </Screen>
   );
 }
+
+/* ------------------------------------------------------------------ */
 
 function LocationPickerModal({
   open,
@@ -221,72 +225,99 @@ function LocationPickerModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onApply: (lat: number, lng: number) => void;
+  onApply: (latitude: number, longitude: number) => void;
   initialLatitude: number;
   initialLongitude: number;
 }) {
-  const { colors } = useTheme();
   const { t } = useI18n();
-  const [latText, setLatText] = useState(String(initialLatitude));
-  const [lngText, setLngText] = useState(String(initialLongitude));
+  const [draftLat, setDraftLat] = useState(String(initialLatitude));
+  const [draftLng, setDraftLng] = useState(String(initialLongitude));
 
   React.useEffect(() => {
     if (open) {
-      setLatText(initialLatitude.toFixed(5));
-      setLngText(initialLongitude.toFixed(5));
+      setDraftLat(initialLatitude.toFixed(5));
+      setDraftLng(initialLongitude.toFixed(5));
     }
   }, [open, initialLatitude, initialLongitude]);
 
   const apply = () => {
-    const latitude = parseFloat(latText);
-    const longitude = parseFloat(lngText);
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-    onApply(latitude, longitude);
+    const newLat = parseFloat(draftLat);
+    const newLng = parseFloat(draftLng);
+    if (!Number.isFinite(newLat) || !Number.isFinite(newLng)) return;
+    onApply(clampCoord(newLat, -90, 90), clampCoord(newLng, -180, 180));
   };
 
   return (
-    <Modal visible={open} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: '#00000088', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <Card style={{ width: '100%', maxWidth: 420, gap: 12 }}>
-          <Text style={{ fontSize: 17, fontWeight: '800' }}>{t('discover.pickLocation')}</Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>{t('discover.latitude')}</Text>
-              <TextInput
-                value={latText}
-                onChangeText={setLatText}
-                keyboardType="numbers-and-punctuation"
-                style={{
-                  backgroundColor: colors.surfaceAlt,
-                  borderRadius: 8,
-                  paddingHorizontal: 10,
-                  paddingVertical: 8,
-                  color: colors.text,
-                }}
-              />
-            </View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>{t('discover.longitude')}</Text>
-              <TextInput
-                value={lngText}
-                onChangeText={setLngText}
-                keyboardType="numbers-and-punctuation"
-                style={{
-                  backgroundColor: colors.surfaceAlt,
-                  borderRadius: 8,
-                  paddingHorizontal: 10,
-                  paddingVertical: 8,
-                  color: colors.text,
-                }}
-              />
-            </View>
+    <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <Screen topInset={false} className="p-4">
+        <Text className="mb-4 text-xl font-extrabold tracking-tight text-base-content">{t('discover.pickLocation')}</Text>
+        <View className="gap-3">
+          <Input value={draftLat} onChangeText={setDraftLat} keyboardType="numbers-and-punctuation" placeholder={t('discover.latitude')} />
+          <Input value={draftLng} onChangeText={setDraftLng} keyboardType="numbers-and-punctuation" placeholder={t('discover.longitude')} />
+          <View className="mt-1 flex-row justify-end gap-2">
+            <Btn label={t('common.cancel')} variant="ghost" onPress={onClose} />
+            <Btn label={t('discover.apply')} onPress={apply} icon="checkmark" />
           </View>
-          <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'flex-end' }}>
-            <Button label={t('common.cancel')} variant="ghost" onPress={onClose} small />
-            <Button label={t('discover.apply')} onPress={apply} small />
-          </View>
-        </Card>
-      </View>
+        </View>
+      </Screen>
+    </Modal>
+  );
+}
+
+function clampCoord(v: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, v));
+}
+
+function GamesFilterModal({
+  open,
+  onClose,
+  selected,
+  toggle,
+  clear,
+}: {
+  open: boolean;
+  onClose: () => void;
+  selected: number[];
+  toggle: (id: number) => void;
+  clear: () => void;
+}) {
+  const { t } = useI18n();
+  const palette = useThemePalette();
+  const titlesQuery = useGameTitles();
+  const titles = titlesQuery.data?.titles ?? [];
+
+  return (
+    <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <Screen topInset={false}>
+        <View className="flex-row items-center justify-between px-5 pb-1 pt-4">
+          <Text className="text-xl font-extrabold tracking-tight text-base-content">{t('discover.gameFilter')}</Text>
+          <Pressable hitSlop={8} onPress={onClose} className="h-9 w-9 items-center justify-center rounded-full bg-base-200 active:bg-base-300/60">
+            <Ionicons name="close" size={18} color={palette.textMuted} />
+          </Pressable>
+        </View>
+        <FlatList
+          data={titles}
+          keyExtractor={(title) => String(title.id)}
+          contentContainerStyle={{ padding: 20 }}
+          numColumns={2}
+          columnWrapperStyle={{ gap: 10 }}
+          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          renderItem={({ item }) => (
+            <Chip
+              label={item.name}
+              active={selected.includes(item.id)}
+              color="secondary"
+              className="flex-1"
+              onPress={() => toggle(item.id)}
+            />
+          )}
+          ListFooterComponent={
+            selected.length > 0 ? (
+              <Btn label={t('discover.clearGames')} variant="ghost" size="sm" className="mt-4 self-center" onPress={clear} />
+            ) : null
+          }
+        />
+      </Screen>
     </Modal>
   );
 }

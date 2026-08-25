@@ -48,7 +48,7 @@ function normalizeBaseUrl(url: string): string {
   return trimmed;
 }
 
-export class NearcadeApi {
+export class nearcadeApi {
   readonly baseUrl: string;
   private getCookie?: () => string | undefined;
   private storeCookies?: (setCookieHeader: string | null) => void;

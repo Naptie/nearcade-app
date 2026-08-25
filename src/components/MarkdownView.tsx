@@ -1,7 +1,7 @@
 import React from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { useTheme } from '@/theme';
+import { useThemePalette } from '@/theme/palette';
 
 /**
  * Minimal Markdown renderer covering the subset used in nearcade posts and
@@ -10,7 +10,7 @@ import { useTheme } from '@/theme';
  * No native deps — intentionally tiny.
  */
 
-function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
+function renderInline(text: string, keyPrefix: string, linkColor: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   const regex = /(\*\*[^*]+\*\*)|(\*[^*]+\*)|(`[^`]+`)|(\[[^\]]+\]\((?:https?:\/\/|\/)[^)\s]+\))|(https?:\/\/[^\s)]+)/g;
   let last = 0;
@@ -20,9 +20,17 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
     if (match.index > last) nodes.push(text.slice(last, match.index));
     const token = match[0];
     if (token.startsWith('**')) {
-      nodes.push(<Text key={`${keyPrefix}-b${i}`} style={{ fontWeight: '800' }}>{token.slice(2, -2)}</Text>);
+      nodes.push(
+        <Text key={`${keyPrefix}-b${i}`} style={{ fontWeight: '700' }}>
+          {token.slice(2, -2)}
+        </Text>
+      );
     } else if (token.startsWith('*')) {
-      nodes.push(<Text key={`${keyPrefix}-i${i}`} style={{ fontStyle: 'italic' }}>{token.slice(1, -1)}</Text>);
+      nodes.push(
+        <Text key={`${keyPrefix}-i${i}`} style={{ fontStyle: 'italic' }}>
+          {token.slice(1, -1)}
+        </Text>
+      );
     } else if (token.startsWith('`')) {
       nodes.push(
         <Text key={`${keyPrefix}-c${i}`} style={styles.code}>
@@ -33,13 +41,13 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
       const label = token.slice(1, token.indexOf(']'));
       const url = token.slice(token.indexOf('(') + 1, -1);
       nodes.push(
-        <Text key={`${keyPrefix}-l${i}`} style={styles.link} onPress={() => void Linking.openURL(url)}>
+        <Text key={`${keyPrefix}-l${i}`} style={[styles.link, { color: linkColor }]} onPress={() => void Linking.openURL(url)}>
           {label}
         </Text>
       );
     } else {
       nodes.push(
-        <Text key={`${keyPrefix}-u${i}`} style={styles.link} onPress={() => void Linking.openURL(token)}>
+        <Text key={`${keyPrefix}-u${i}`} style={[styles.link, { color: linkColor }]} onPress={() => void Linking.openURL(token)}>
           {token}
         </Text>
       );
@@ -52,7 +60,7 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
 }
 
 export function MarkdownView({ source }: { source: string }) {
-  const { colors } = useTheme();
+  const palette = useThemePalette();
   const lines = (source ?? '').replace(/\r\n/g, '\n').split('\n');
   const blocks: React.ReactNode[] = [];
   let listBuffer: string[] = [];
@@ -64,8 +72,8 @@ export function MarkdownView({ source }: { source: string }) {
       <View key={`list-${blocks.length}`} style={{ gap: 4, marginVertical: 6 }}>
         {listBuffer.map((item, idx) => (
           <View key={idx} style={{ flexDirection: 'row', gap: 8 }}>
-            <Text style={{ color: colors.primary, fontWeight: '800' }}>{listOrdered ? `${idx + 1}.` : '•'}</Text>
-            <Text style={[styles.body, { color: colors.text, flex: 1 }]}>{renderInline(item, `li${idx}`)}</Text>
+            <Text style={{ color: palette.primary, fontWeight: '700' }}>{listOrdered ? `${idx + 1}.` : '•'}</Text>
+            <Text style={[styles.body, { color: palette.text, flex: 1 }]}>{renderInline(item, `li${idx}`, palette.info)}</Text>
           </View>
         ))}
       </View>
@@ -83,14 +91,14 @@ export function MarkdownView({ source }: { source: string }) {
         <Text
           key={`h-${i}`}
           style={{
-            color: colors.text,
-            fontWeight: '800',
+            color: palette.text,
+            fontWeight: '700',
             fontSize: [20, 18, 16, 15][level - 1],
             marginTop: level === 1 ? 10 : 8,
             marginBottom: 4,
           }}
         >
-          {renderInline(headingMatch[2], `h${i}`)}
+          {renderInline(headingMatch[2], `h${i}`, palette.info)}
         </Text>
       );
       continue;
@@ -104,8 +112,8 @@ export function MarkdownView({ source }: { source: string }) {
         i++;
       }
       blocks.push(
-        <View key={`code-${i}`} style={[styles.codeBlock, { backgroundColor: colors.surfaceAlt }]}>
-          <Text style={{ fontFamily: 'monospace', fontSize: 12.5, color: colors.text }}>{codeLines.join('\n')}</Text>
+        <View key={`code-${i}`} style={[styles.codeBlock, { backgroundColor: palette.surfaceAlt }]}>
+          <Text style={{ fontFamily: 'monospace', fontSize: 12.5, color: palette.text }}>{codeLines.join('\n')}</Text>
         </View>
       );
       continue;
@@ -117,7 +125,7 @@ export function MarkdownView({ source }: { source: string }) {
         <Image
           key={`img-${i}`}
           source={{ uri: imgMatch[2] }}
-          style={{ width: '100%', height: 180, borderRadius: 10, marginVertical: 6 }}
+          style={{ width: '100%', height: 180, borderRadius: 12, marginVertical: 6 }}
           contentFit="cover"
           accessibilityLabel={imgMatch[1] || 'image'}
         />
@@ -139,15 +147,23 @@ export function MarkdownView({ source }: { source: string }) {
     if (/^>\s?/.test(line)) {
       flushList();
       blocks.push(
-        <View key={`q-${i}`} style={{ borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: 10, marginVertical: 6 }}>
-          <Text style={{ color: colors.textMuted }}>{renderInline(line.replace(/^>\s?/, ''), `q${i}`)}</Text>
+        <View
+          key={`q-${i}`}
+          style={{ borderLeftWidth: 3, borderLeftColor: palette.accent, paddingLeft: 10, marginVertical: 6 }}
+        >
+          <Text style={{ color: palette.textMuted }}>{renderInline(line.replace(/^>\s?/, ''), `q${i}`, palette.info)}</Text>
         </View>
       );
       continue;
     }
     if (/^---+$/.test(line.trim())) {
       flushList();
-      blocks.push(<View key={`hr-${i}`} style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginVertical: 10 }} />);
+      blocks.push(
+        <View
+          key={`hr-${i}`}
+          style={{ height: StyleSheet.hairlineWidth, backgroundColor: palette.border, marginVertical: 10 }}
+        />
+      );
       continue;
     }
     if (line.trim() === '') {
@@ -157,16 +173,20 @@ export function MarkdownView({ source }: { source: string }) {
     // Paragraph line — accumulate soft-wrapped lines separated by single newlines
     flushList();
     const para: string[] = [line];
-    while (i + 1 < lines.length && lines[i + 1].trim() !== '' && !/^(#{1,4}\s|```|[-*]\s|\d+\.\s|>\s?|!\[)/.test(lines[i + 1])) {
+    while (
+      i + 1 < lines.length &&
+      lines[i + 1].trim() !== '' &&
+      !/^(#{1,4}\s|```|[-*]\s|\d+\.\s|>\s?|!\[)/.test(lines[i + 1])
+    ) {
       para.push(lines[i + 1]);
       i++;
     }
     blocks.push(
-      <Text key={`p-${i}`} style={[styles.body, { color: colors.text, marginBottom: 6 }]}>
+      <Text key={`p-${i}`} style={[styles.body, { color: palette.text, marginBottom: 6 }]}>
         {para.map((l, j) => (
           <Text key={j}>
             {j > 0 ? '\n' : null}
-            {renderInline(l, `p${i}-${j}`)}
+            {renderInline(l, `p${i}-${j}`, palette.info)}
           </Text>
         ))}
       </Text>
@@ -177,8 +197,12 @@ export function MarkdownView({ source }: { source: string }) {
 }
 
 const styles = StyleSheet.create({
-  body: { fontSize: 15, lineHeight: 22 },
-  link: { color: '#38BDF8', textDecorationLine: 'underline' },
-  code: { fontFamily: 'monospace', backgroundColor: '#88888833', paddingHorizontal: 3 },
+  body: { fontSize: 14.5, lineHeight: 22 },
+  link: { textDecorationLine: 'underline' },
+  code: {
+    fontFamily: 'monospace',
+    backgroundColor: '#88888833',
+    paddingHorizontal: 3,
+  },
   codeBlock: { borderRadius: 10, padding: 12, marginVertical: 6 },
 });

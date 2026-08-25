@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* daisyUI "emerald" (light) — nearcade's default site theme */
+:root {
+  --color-base-100: 255 255 255;
+  --color-base-200: 232 232 232;
+  --color-base-300: 209 209 209;
+  --color-base-content: 51 60 77;
+
+  --color-primary: 102 204 138;
+  --color-primary-content: 20 56 35;
+  --color-secondary: 55 124 251;
+  --color-secondary-content: 247 250 255;
+  --color-accent: 246 128 103;
+  --color-accent-content: 61 18 9;
+  --color-neutral: 51 60 77;
+  --color-neutral-content: 248 248 248;
+
+  --color-info: 55 124 251;
+  --color-info-content: 245 249 255;
+  --color-success: 34 197 94;
+  --color-success-content: 5 32 15;
+  --color-warning: 245 158 11;
+  --color-warning-content: 37 22 2;
+  --color-error: 239 68 68;
+  --color-error-content: 47 7 7;
+}
+
+/* daisyUI "forest" (dark) — nearcade's dark site theme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-base-100: 27 23 23;
+    --color-base-200: 22 18 18;
+    --color-base-300: 17 13 13;
+    --color-base-content: 202 201 201;
+
+    --color-primary: 31 184 84;
+    --color-primary-content: 4 26 12;
+    --color-secondary: 30 184 142;
+    --color-secondary-content: 3 28 21;
+    --color-accent: 31 184 171;
+    --color-accent-content: 3 27 25;
+    --color-neutral: 25 54 45;
+    --color-neutral-content: 214 222 218;
+
+    --color-info: 56 189 248;
+    --color-info-content: 4 22 33;
+    --color-success: 52 211 153;
+    --color-success-content: 4 26 17;
+    --color-warning: 251 191 36;
+    --color-warning-content: 30 21 3;
+    --color-error: 248 113 113;
+    --color-error-content: 34 6 6;
+  }
+}

@@ -44,7 +44,7 @@ function encodePNG(w, h, rgba) {
   ]);
 }
 
-const BG = [14, 16, 22, 255]; // #0E1016
+const BG = [27, 23, 23, 255]; // #1B1717 (forest base-100)
 const PINK = [255, 62, 142, 255];
 const CYAN = [56, 224, 255, 255];
 const WHITE = [240, 242, 248, 255];

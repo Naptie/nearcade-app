@@ -1,7 +1,7 @@
 export type Dict = Record<string, string>;
 
 export const en: Dict = {
-  'app.name': 'Nearcade',
+  'app.name': 'nearcade',
   'tabs.discover': 'Discover',
   'tabs.rankings': 'Rankings',
   'tabs.community': 'Community',
@@ -19,6 +19,9 @@ export const en: Dict = {
   'common.search': 'Search',
   'common.more': 'Load more',
   'common.km': 'km',
+  'common.copy': 'Copy',
+  'common.copied': 'Copied to clipboard',
+  'common.paste': 'Paste',
   'common.machines': 'machines',
   'common.shops': 'shops',
   'common.members': 'members',
@@ -37,6 +40,9 @@ export const en: Dict = {
   'discover.results': '{count} arcades nearby',
   'discover.noResults': 'No arcades found. Try a larger radius or fewer filters.',
   'discover.attendanceNow': '{count} playing now',
+  'discover.nobodyPlaying': 'Nobody playing now',
+  'discover.tagline': 'The global rhythm game map',
+  'discover.clearGames': 'Clear filters',
   'shop.checkin': 'Check in',
   'shop.checkedIn': "You're checked in here",
   'shop.directions': 'Directions',

@@ -1,12 +1,19 @@
 import React from 'react';
-import { FlatList, Pressable, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { FlatList, Pressable, Text, View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Text, Card, Button, LoadingView, ErrorState, EmptyState } from '@/components/ui';
-import { UserAvatar } from '@/components/ShopCard';
-import { formatRelativeTime } from '@/utils/format';
+import {
+  Avatar,
+  Card,
+  EmptyState,
+  ErrorState,
+  ListFooter,
+  LoadingView,
+  Screen,
+} from '@/components/ui';
+import { useThemePalette } from '@/theme/palette';
 import { useI18n } from '@/i18n';
-import { useTheme } from '@/theme';
+import { formatRelativeTime } from '@/utils/format';
 import { useMarkAllReadMutation, useNotifications } from '@/hooks/api';
 
 const TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -19,8 +26,8 @@ const TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function NotificationsScreen() {
-  const { colors } = useTheme();
   const { t, locale } = useI18n();
+  const palette = useThemePalette();
   const router = useRouter();
   const query = useNotifications(false);
   const markAll = useMarkAllReadMutation();
@@ -28,7 +35,23 @@ export default function NotificationsScreen() {
   const notifications = query.data?.pages.flatMap((p) => p.notifications) ?? [];
 
   return (
-    <Screen>
+    <Screen topInset={false}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerShadowVisible: false,
+          headerTintColor: palette.primary,
+          headerStyle: { backgroundColor: palette.background },
+          headerTitle: t('me.notifications'),
+          headerRight: () => (
+            <Pressable hitSlop={8} onPress={() => markAll.mutate()} disabled={markAll.isPending}>
+              <Text className="text-[13px] font-bold text-primary">
+                {markAll.isPending ? '…' : t('notifications.markAllRead')}
+              </Text>
+            </Pressable>
+          ),
+        }}
+      />
       <FlatList
         data={notifications}
         keyExtractor={(n) => n.id}
@@ -37,47 +60,44 @@ export default function NotificationsScreen() {
           if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
         }}
         onEndReachedThreshold={0.4}
-        ListHeaderComponent={
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <Text style={{ fontSize: 22, fontWeight: '900' }}>{t('me.notifications')}</Text>
-            <Button
-              label={t('notifications.markAllRead')}
-              variant="ghost"
-              small
-              loading={markAll.isPending}
-              onPress={() => markAll.mutate()}
-            />
-          </View>
-        }
         renderItem={({ item }) => (
           <Pressable onPress={() => item.postId && router.push(`/post/${item.postId}`)}>
-            <Card style={{ marginBottom: 8, opacity: item.readAt ? 0.65 : 1 }}>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <UserAvatar name={item.actorDisplayName ?? item.actorName} image={item.actorImage} size={34} />
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Ionicons name={TYPE_ICONS[item.type] ?? 'notifications'} size={13} color={colors.accent} />
-                    {!item.readAt ? <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: colors.primary }} /> : null}
-                    <Text style={{ fontSize: 11, color: colors.textMuted, fontWeight: '700' }}>{item.type}</Text>
-                  </View>
-                  <Text style={{ fontSize: 14, marginTop: 3 }} numberOfLines={3}>
-                    {item.content ?? `${item.actorDisplayName || item.actorName} · ${item.postTitle ?? item.shopName ?? ''}`}
-                  </Text>
-                  <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
-                    {formatRelativeTime(item.createdAt, locale)}
-                  </Text>
+            <Card
+              padding={false}
+              className={`mb-2 flex-row items-start gap-2.5 p-3.5 ${
+                item.readAt ? '' : 'border-primary/30 bg-primary/5'
+              }`}
+            >
+              <Avatar name={item.actorDisplayName ?? item.actorName} image={item.actorImage} size={34} />
+              <View className="flex-1">
+                <View className="flex-row items-center gap-1.5">
+                  <Ionicons name={TYPE_ICONS[item.type] ?? 'notifications'} size={12} className="text-accent" />
+                  {!item.readAt ? <View className="h-2 w-2 rounded-full bg-primary" /> : null}
+                  <Text className="text-[10.5px] font-bold uppercase tracking-wide text-base-content/45">{item.type}</Text>
+                  <View className="flex-1" />
+                  <Text className="text-[10.5px] text-base-content/45">{formatRelativeTime(item.createdAt, locale)}</Text>
                 </View>
+                <Text className="mt-1 text-[13.5px] leading-[19px] text-base-content/85" numberOfLines={3}>
+                  {item.content ?? `${item.actorDisplayName || item.actorName} · ${item.postTitle ?? item.shopName ?? ''}`}
+                </Text>
               </View>
             </Card>
           </Pressable>
         )}
+        ListFooterComponent={
+          <ListFooter
+            hasMore={Boolean(query.hasNextPage)}
+            loading={query.isFetchingNextPage}
+            onMore={() => void query.fetchNextPage()}
+          />
+        }
         ListEmptyComponent={
           query.isLoading ? (
             <LoadingView />
           ) : query.isError ? (
             <ErrorState error={query.error} onRetry={() => void query.refetch()} />
           ) : (
-            <EmptyState message={t('common.empty')} icon={<Ionicons name="notifications-off-outline" size={40} color={colors.textMuted} />} />
+            <EmptyState message={t('common.empty')} icon="notifications-off-outline" />
           )
         }
       />
